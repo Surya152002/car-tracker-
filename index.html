@@ -1,56 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Blind Spot Detection</title>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>Document</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
         #map {
-            height: 400px;
+            width: 60%;
+            height: 40vh;
         }
     </style>
 </head>
+
 <body>
+    <h1>Roardv Track</h1>
     <div id="map"></div>
-
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@turf/turf"></script>
+    <div id="message"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
     <script>
-        // Leaflet map initialization
-        var map = L.map('map').setView([0, 0], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-        }).addTo(map);
+        var map_init = L.map('map', {
+            center: [0, 0],
+            zoom: 2
+        });
+        var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map_init);
+        L.Control.geocoder().addTo(map_init);
 
-        // Creating a marker for the user's location
-        var userMarker = null;
+        function getPosition(position) {
+            var lat = position.coords.latitude;
+            var long = position.coords.longitude;
+            var accuracy = position.coords.accuracy;
 
-        // Creating a polygon representing the blind spot
-        var blindSpotPolygon = L.polygon([], { color: 'red' }).addTo(map);
+            if (marker) {
+                map_init.removeLayer(marker);
+            }
 
-        // Function to update the blind spot polygon based on user's location
-        function updateBlindSpot(position) {
-            var userPoint = turf.point([position.coords.longitude, position.coords.latitude]);
-            var blindSpotRadius = 50; // Adjust this value to define the blind spot radius in meters
+            if (circle) {
+                map_init.removeLayer(circle);
+            }
 
-            // Generate a circle polygon around the user with the defined radius
-            var circle = turf.circle(userPoint, blindSpotRadius, { steps: 64, units: 'meters' });
+            var marker = L.marker([lat, long]);
+            var circle = L.circle([lat, long], { radius: accuracy });
 
-            // Update the blind spot polygon on the map
-            blindSpotPolygon.setLatLngs(circle.geometry.coordinates[0].map(function (coords) {
-                return [coords[1], coords[0]];
-            }));
+            var featureGroup = L.featureGroup([marker, circle]).addTo(map_init);
+
+            map_init.fitBounds(featureGroup.getBounds());
+
+            var messageDiv = document.getElementById("message");
+            messageDiv.innerHTML = "Your coordinates are: Latitude: " + lat + ", Longitude: " + long + ", Accuracy: " + accuracy;
         }
 
-        // Function to handle geolocation error
         function handleGeolocationError(error) {
             console.error('Error retrieving geolocation:', error.message);
         }
 
-        // Get the user's location
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(updateBlindSpot, handleGeolocationError);
+            navigator.geolocation.getCurrentPosition(getPosition, handleGeolocationError);
         } else {
             console.error('Geolocation is not supported by this browser.');
         }
