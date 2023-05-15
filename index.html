@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blind Spot Detection</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf"></script>
+    <script>
+        // Leaflet map initialization
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        // Creating a marker for the car's location
+        var carMarker = L.marker([51.5, -0.09]).addTo(map);
+
+        // Creating a polygon representing the blind spot
+        var blindSpotPolygon = L.polygon([], { color: 'red' }).addTo(map);
+
+        // Function to update the blind spot polygon based on car's position
+        function updateBlindSpot() {
+            var carPoint = turf.point([carMarker.getLatLng().lng, carMarker.getLatLng().lat]);
+            var blindSpotRadius = 50; // Adjust this value to define the blind spot radius in meters
+
+            // Generate a circle polygon around the car with the defined radius
+            var circle = turf.circle(carPoint, blindSpotRadius, { steps: 64, units: 'meters' });
+
+            // Update the blind spot polygon on the map
+            blindSpotPolygon.setLatLngs(circle.geometry.coordinates[0].map(function (coords) {
+                return [coords[1], coords[0]];
+            }));
+        }
+
+        // Event listener for car marker movement
+        carMarker.on('move', updateBlindSpot);
+
+        // Simulating car movement for demonstration purposes
+        setInterval(function () {
+            var latLng = carMarker.getLatLng();
+            var newLatLng = L.latLng(latLng.lat + 0.001, latLng.lng + 0.001);
+            carMarker.setLatLng(newLatLng);
+        }, 1000);
+    </script>
+</body>
+</html>
