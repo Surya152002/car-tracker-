@@ -23,7 +23,7 @@
 </head>
 
 <body>
-    <h1>Roardv Track</h1>
+    <h1>Road Track</h1>
     <div id="map"></div>
     <div id="message"></div>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
@@ -40,7 +40,9 @@
         }).addTo(map_init);
         L.Control.geocoder().addTo(map_init);
 
-        function getPosition(position) {
+        var blindSpot;
+
+        function calculateBlindSpot(position) {
             var lat = position.coords.latitude;
             var long = position.coords.longitude;
             var accuracy = position.coords.accuracy;
@@ -62,17 +64,48 @@
 
             var messageDiv = document.getElementById("message");
             messageDiv.innerHTML = "Your coordinates are: Latitude: " + lat + ", Longitude: " + long + ", Accuracy: " + accuracy;
-        }
 
-        function handleGeolocationError(error) {
-            console.error('Error retrieving geolocation:', error.message);
-        }
+            // Calculate the blind spot polygon
+            var blindSpotRadius = 50; // Adjust this value to define the blind spot radius in meters
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(getPosition, handleGeolocationError);
-        } else {
-            console.error('Geolocation is not supported by this browser.');
-        }
+            var blindSpotCenter = L.latLng(lat, long);
+            var blindSpotBounds = blindSpotCenter.toBounds(blindSpotRadius);
+
+            var blindSpotPolygon = L.rectangle(blindSpotBounds, { color:"red", weight: 2, fillOpacity: 0.2 });
+
+                    // Remove previous blind spot if it exists
+                    if (blindSpot) {
+                        map_init.removeLayer(blindSpot);
+                    }
+
+                    // Add the blind spot polygon to the map
+                    var blindSpot = L.featureGroup([blindSpotPolygon]).addTo(map_init);
+
+                    // Check if the blind spot intersects with any other markers on the map
+                    var intersectingMarkers = featureGroup.getLayers().filter(function(layer) {
+                        return blindSpotPolygon.getBounds().intersects(layer.getBounds());
+                    });
+
+                    // Remove previous intersecting markers if they exist
+                    intersectingMarkers.forEach(function(marker) {
+                        map_init.removeLayer(marker);
+                    });
+
+                    // Output the number of intersecting markers
+                    var messageDiv = document.getElementById("message");
+                    messageDiv.innerHTML += "<br>Number of intersecting markers: " + intersectingMarkers.length;
+                }
+
+                function handleGeolocationError(error) {
+                    console.error('Error retrieving geolocation:', error.message);
+                }
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.watchPosition(calculateBlindSpot, handleGeolocationError, { enableHighAccuracy: true });
+                } else {
+                    console.error('Geolocation is not supported by this browser.');
+                }
     </script>
 </body>
 </html>
+
