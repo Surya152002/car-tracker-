@@ -18,24 +18,24 @@
     <script src="https://unpkg.com/@turf/turf"></script>
     <script>
         // Leaflet map initialization
-        var map = L.map('map').setView([51.505, -0.09], 13);
+        var map = L.map('map').setView([0, 0], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
         }).addTo(map);
 
-        // Creating a marker for the car's location
-        var carMarker = L.marker([51.5, -0.09]).addTo(map);
+        // Creating a marker for the user's location
+        var userMarker = null;
 
         // Creating a polygon representing the blind spot
         var blindSpotPolygon = L.polygon([], { color: 'red' }).addTo(map);
 
-        // Function to update the blind spot polygon based on car's position
-        function updateBlindSpot() {
-            var carPoint = turf.point([carMarker.getLatLng().lng, carMarker.getLatLng().lat]);
+        // Function to update the blind spot polygon based on user's location
+        function updateBlindSpot(position) {
+            var userPoint = turf.point([position.coords.longitude, position.coords.latitude]);
             var blindSpotRadius = 50; // Adjust this value to define the blind spot radius in meters
 
-            // Generate a circle polygon around the car with the defined radius
-            var circle = turf.circle(carPoint, blindSpotRadius, { steps: 64, units: 'meters' });
+            // Generate a circle polygon around the user with the defined radius
+            var circle = turf.circle(userPoint, blindSpotRadius, { steps: 64, units: 'meters' });
 
             // Update the blind spot polygon on the map
             blindSpotPolygon.setLatLngs(circle.geometry.coordinates[0].map(function (coords) {
@@ -43,15 +43,17 @@
             }));
         }
 
-        // Event listener for car marker movement
-        carMarker.on('move', updateBlindSpot);
+        // Function to handle geolocation error
+        function handleGeolocationError(error) {
+            console.error('Error retrieving geolocation:', error.message);
+        }
 
-        // Simulating car movement for demonstration purposes
-        setInterval(function () {
-            var latLng = carMarker.getLatLng();
-            var newLatLng = L.latLng(latLng.lat + 0.001, latLng.lng + 0.001);
-            carMarker.setLatLng(newLatLng);
-        }, 1000);
+        // Get the user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(updateBlindSpot, handleGeolocationError);
+        } else {
+            console.error('Geolocation is not supported by this browser.');
+        }
     </script>
 </body>
 </html>
